@@ -10,6 +10,27 @@ class CalculateNormalOfPerspectivePlane(bpy.types.Operator):
     def execute(self, context):
         # Get the selected points
         SelectedPoints = GetGreasePencilStrokePoints()
+        
+        # Ensure we are working with 4 vertices
+        if len(SelectedPoints) != 4:
+            print("Must be used with exactly 4 points")
+            return {'CANCELLED'}
+        
+        # The points of this plane
+        PointA = SelectedPoints[0]
+        PointB = SelectedPoints[1]
+        PointC = SelectedPoints[2]
+        PointD = SelectedPoints[3]
+        
+        # The vectors between the different points
+        AToB = PointB.co - PointA.co
+        BToC = PointC.co - PointB.co
+        CToD = PointD.co - PointC.co
+        DToA = PointA.co - PointD.co
+        
+        # The normal of this plane in global space
+        GlobalNormal = AToB.normalized().cross(BToC.normalized())
+        
         return {'FINISHED'}
     
 
