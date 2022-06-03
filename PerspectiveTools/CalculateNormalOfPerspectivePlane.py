@@ -12,7 +12,7 @@ class CalculateNormalOfPerspectivePlane(bpy.types.Operator):
         SelectedPoints = GetGreasePencilStrokePoints()
         
         # Ensure we are working with 4 vertices
-        if len(SelectedPoints) != 4:
+        if (len(SelectedPoints) != 4):
             print("Must be used with exactly 4 points")
             return {'CANCELLED'}
         
@@ -22,11 +22,16 @@ class CalculateNormalOfPerspectivePlane(bpy.types.Operator):
         PointC = SelectedPoints[2]
         PointD = SelectedPoints[3]
         
+        # Ensure points are coplanar
+        if (PointsAreCoplanar([PointA.co, PointB.co, PointC.co, PointD.co]) == False):
+            print("The 4 points are not aligned on the same global normal")
+            return {'CANCELLED'}
+        
         # The vectors between the different points
-        AToB = PointB.co - PointA.co
-        BToC = PointC.co - PointB.co
-        CToD = PointD.co - PointC.co
-        DToA = PointA.co - PointD.co
+        AToB = (PointB.co - PointA.co)
+        BToC = (PointC.co - PointB.co)
+        CToD = (PointD.co - PointC.co)
+        DToA = (PointA.co - PointD.co)
         
         # The normal of this plane in global space
         GlobalNormal = AToB.normalized().cross(BToC.normalized())
@@ -43,7 +48,7 @@ bpy.utils.register_class(CalculateNormalOfPerspectivePlane)
 bpy.types.VIEW3D_MT_view.append(menu_func)
 
 
-# Gets the currently selected grease pencil stroke points if any
+# Gets the currently selected grease pencil stroke points - if any
 def GetGreasePencilStrokePoints():
     # Get active object
     ActiveObject =  bpy.context.active_object.data
@@ -71,3 +76,27 @@ def GetGreasePencilStrokePoints():
         
     
     return SelectedPoints
+
+# Given four points, do they exist on the same plane?
+def PointsAreCoplanar(InPoints, InErrorTolerance = 0.0001):
+    if (len(InPoints) <= 3):
+        # Three points are always coplanar
+        return True;
+    
+    PlaneNormal = (InPoints[2] - InPoints[0]).cross(InPoints[1] - InPoints[0]).normalized();
+    
+    for i in range(3, len(InPoints)): # skip the first three points
+        DirectionToPoint = (InPoints[i] - InPoints[0]).normalized();
+        
+        bPerpendicular = IsNearlyEqual(PlaneNormal.dot(DirectionToPoint), 0, InErrorTolerance);
+        if (bPerpendicular == False):
+            # Not coplanar
+            return False
+    
+    # All points lie on the same plane
+    return True;
+
+# Are two values nearly equal within a given tolerance
+def IsNearlyEqual(InA, InB, InErrorTolerance = 0.0001):
+    Difference = InB - InA
+    return (abs(Difference) <= InErrorTolerance)
